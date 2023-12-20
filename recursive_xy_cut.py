@@ -4,16 +4,15 @@ from enum import Enum
 import numpy as np
 
 
-class BoxType(str, Enum):
-    TEXT = "text"
-    TABLE = "table"
-
 class Point(BaseModel):
+    """A point with two dimensional coordinates."""
     x: int
     y: int
 
 
 class Rectangle:
+"""A rectangular bounding box."""
+
     def __init__(self, bottom_right: Point, top_left: Point, boxtype: BoxType = None, text: str = None, index: int = None):
         self.bottom_right = bottom_right
         self.top_left = top_left
@@ -22,6 +21,7 @@ class Rectangle:
         self.index = index
 
     def intersects(self, other: 'Rectangle'):
+        """Check if a Rectangle intersects another one."""
         return not (
             self.top_left.x > other.bottom_right.x
             or self.bottom_right.x < other.top_left.x
