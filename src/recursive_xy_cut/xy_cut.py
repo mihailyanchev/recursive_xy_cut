@@ -1,26 +1,43 @@
-"""Implementation of the recursive xy cut method for ordering bounding boxes in a document layout."""
-from pydantic import BaseModel
-from enum import Enum
+"""Recursive xy cut method for ordering bounding boxes in a document layout."""
+
+from __future__ import annotations
+
 import numpy as np
+from pydantic import BaseModel
 
 
 class Point(BaseModel):
     """A point with two dimensional coordinates."""
+
     x: int
     y: int
 
 
 class Rectangle:
-"""A rectangular bounding box."""
+    """A rectangular bounding box."""
 
-    def __init__(self, bottom_right: Point, top_left: Point, boxtype: BoxType = None, text: str = None, index: int = None):
+    def __init__(
+        self,
+        bottom_right: Point,
+        top_left: Point,
+        boxtype: str | None = None,
+        text: str | None = None,
+        index: int | None = None,
+    ) -> None:
         self.bottom_right = bottom_right
         self.top_left = top_left
         self.boxtype = boxtype
         self.text = text
         self.index = index
 
-    def intersects(self, other: 'Rectangle'):
+    def __repr__(self) -> str:
+        return (
+            f"Rectangle(top_left=({self.top_left.x}, {self.top_left.y}), "
+            f"bottom_right=({self.bottom_right.x}, {self.bottom_right.y}), "
+            f"index={self.index})"
+        )
+
+    def intersects(self, other: Rectangle) -> bool:
         """Check if a Rectangle intersects another one."""
         return not (
             self.top_left.x > other.bottom_right.x
@@ -32,20 +49,20 @@ class Rectangle:
 
 def xy_cut(
     bboxes: list[Rectangle],
-    image_dims: tuple,
+    image_dims: tuple[int, int],
     depth: int = 0,
     max_depth: int = 10,
     horizontal: bool = True,
-):
+) -> list[Rectangle]:
     """
     Perform the recursive xy cut on a list of bounding boxes.
 
     Parameters
     ----------
-    bboxes: List[Rectangle]
+    bboxes: list[Rectangle]
         A list of predetermined bounding boxes.
-    image_dims: tuple
-        A tuple countaining the image dimensions where the zeroth element is the height
+    image_dims: tuple[int, int]
+        A tuple containing the image dimensions where the zeroth element is the height
         and the first element is the width.
     depth: int
         Initial depth of xy cut tree.
@@ -56,14 +73,14 @@ def xy_cut(
 
     Returns
     -------
-    List[Rectangle]
+    list[Rectangle]
         Reordered bounding boxes on the basis of the recursive cuts made.
 
     Note: Currently the algorithm finds the largest gap in a given direction and makes
-    a cut there and then alternates between horizontal and vertical cuts. However, the 
+    a cut there and then alternates between horizontal and vertical cuts. However, the
     algorithm would be more accurate if it makes a cut at all the gaps in the same direction
     per iteration.
-    
+
     Sources:
     The paper on the xy cut used to implement the algorithm:
     http://haralick.org/conferences/71280952.pdf
@@ -78,16 +95,17 @@ def xy_cut(
     bboxes = sorted(bboxes, key=lambda bbox: (bbox.top_left.y, bbox.top_left.x))
 
     # Get page margins so that no cut points are assigned within
-    top_margin = min([box.top_left.y for box in bboxes])
-    bottom_margin = max([box.bottom_right.y for box in bboxes])
-    left_margin = min([box.top_left.x for box in bboxes])
-    right_margin = max([box.bottom_right.x for box in bboxes])
+    top_margin = min(box.top_left.y for box in bboxes)
+    bottom_margin = max(box.bottom_right.y for box in bboxes)
+    left_margin = min(box.top_left.x for box in bboxes)
+    right_margin = max(box.bottom_right.x for box in bboxes)
 
     # Create a blank projections profile (1D vector of length the dim of the image)
     vector_length = image_dims[1 if horizontal else 0]
-    profile = np.zeros(vector_length, dtype=np.int8)
+    profile = np.zeros(vector_length, dtype=np.int32)
 
-    # Assign the bounding box projections to the profile: add 1 if a bounding box is present in this pixel
+    # Assign the bounding box projections to the profile:
+    # add 1 if a bounding box is present in this pixel
     for box in bboxes:
         if horizontal:
             profile[box.top_left.x : box.bottom_right.x] += 1
@@ -95,69 +113,56 @@ def xy_cut(
             profile[box.top_left.y : box.bottom_right.y] += 1
 
     # Get start, stop index pairs for islands/sequences of zeroes
-    if horizontal:
-        idx_pairs = np.where(
-            np.diff(
-                np.hstack(([False], profile[left_margin:right_margin] == 0, [False]))
-            )
-        )[0].reshape(-1, 2)
-    else:
-        idx_pairs = np.where(
-            np.diff(
-                np.hstack(([False], profile[top_margin:bottom_margin] == 0, [False]))
-            )
-        )[0].reshape(-1, 2)
+    region = profile[left_margin:right_margin] if horizontal else profile[top_margin:bottom_margin]
+    idx_pairs = np.where(np.diff(np.hstack(([False], region == 0, [False]))))[0].reshape(-1, 2)
 
     # Get the island lengths, whose argmax would give us the ID of longest island.
-    # Start index of that island would be the desired output
-    if len(idx_pairs) > 0:
-        start_longest_seq = idx_pairs[np.diff(idx_pairs, axis=1).argmax(), 0]
-    else:
+    # Start index of that island would be the desired output.
+    # If there are no gaps just restart with the same bounding boxes
+    # but alternate the horizontal argument.
+    if len(idx_pairs) == 0:
         return xy_cut(
             bboxes=bboxes,
             image_dims=image_dims,
             depth=depth + 1,
+            max_depth=max_depth,
             horizontal=not horizontal,
         )
 
-    # Get the max distance:
+    start_longest_seq = int(idx_pairs[np.diff(idx_pairs, axis=1).argmax(), 0])
     if start_longest_seq < 1:
-        # if there are no gaps just restart with the same bounding boxes
-        # but alternate the horizontal argument
         return xy_cut(
             bboxes=bboxes,
             image_dims=image_dims,
             depth=depth + 1,
+            max_depth=max_depth,
             horizontal=not horizontal,
         )
 
-    # The cut point is made at the start of the logest gap,
+    # The cut point is made at the start of the longest gap,
     # but we also add the top margin in the vertical case
     # and the left margin to the horizontal one, because
     # we searched for the gap in the region between the margins.
-    if horizontal:
-        cut_point = start_longest_seq + left_margin
-    else:
-        cut_point = start_longest_seq + top_margin
+    cut_point = start_longest_seq + (left_margin if horizontal else top_margin)
 
-    if horizontal:
-        # Split list into two parts around the horizontal cut point
-        bboxes1 = [bbox for bbox in bboxes if (bbox.bottom_right.x) <= cut_point]
-        bboxes2 = [bbox for bbox in bboxes if (bbox.top_left.x) >= cut_point]
-    else:
-        # Split list into two parts around the vertical cut point
-        bboxes1 = [bbox for bbox in bboxes if (bbox.bottom_right.y) <= cut_point]
-        bboxes2 = [bbox for bbox in bboxes if (bbox.top_left.y) >= cut_point]
+    # Split list into two parts around the cut point. Every box ends up in exactly one part.
+    bboxes1: list[Rectangle] = []
+    bboxes2: list[Rectangle] = []
+    for bbox in bboxes:
+        end = bbox.bottom_right.x if horizontal else bbox.bottom_right.y
+        (bboxes1 if end <= cut_point else bboxes2).append(bbox)
 
-    # Rerun the the split lists through the xy_cut
+    # Rerun the split lists through the xy_cut
     return xy_cut(
         bboxes=bboxes1,
         image_dims=image_dims,
         depth=depth + 1,
+        max_depth=max_depth,
         horizontal=not horizontal,
     ) + xy_cut(
         bboxes=bboxes2,
         image_dims=image_dims,
         depth=depth + 1,
+        max_depth=max_depth,
         horizontal=not horizontal,
     )
