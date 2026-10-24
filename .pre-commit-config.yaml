@@ -26,7 +26,7 @@ repos:
       - id: ruff-format
 
   # mypy and bandit run from the project environment so they share the
-  # locked versions and see installed dependencies (numpy, pydantic).
+  # locked versions and see installed dependencies.
   - repo: local
     hooks:
       - id: mypy

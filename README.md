@@ -4,7 +4,7 @@ A Python implementation of the **recursive XY cut** algorithm for determining th
 bounding boxes in a document layout.
 
 The algorithm projects the bounding boxes on a page onto the horizontal and vertical axes, finds the
-widest gap (whitespace) in the projection profile, splits the page at that gap and recurses on each
+widest gap (whitespace) between the projected boxes, splits the page at that gap and recurses on each
 part, alternating between vertical and horizontal cuts. Reading the leaves of the resulting tree
 left-to-right gives a reading order for the boxes, for example column by column in a multi-column
 layout.
@@ -27,14 +27,13 @@ uv sync
 from recursive_xy_cut import Point, Rectangle, xy_cut
 
 boxes = [
-    Rectangle(top_left=Point(x=110, y=10), bottom_right=Point(x=190, y=40), index=2),
-    Rectangle(top_left=Point(x=10, y=10), bottom_right=Point(x=90, y=40), index=0),
-    Rectangle(top_left=Point(x=10, y=60), bottom_right=Point(x=90, y=90), index=1),
+    Rectangle(top_left=Point(x=110, y=10), bottom_right=Point(x=190, y=40), text="right"),
+    Rectangle(top_left=Point(x=10, y=10), bottom_right=Point(x=90, y=40), text="left top"),
+    Rectangle(top_left=Point(x=10, y=60), bottom_right=Point(x=90, y=90), text="left bottom"),
 ]
 
-# image_dims is (height, width)
-ordered = xy_cut(boxes, image_dims=(100, 200))
-print([box.index for box in ordered])  # [0, 1, 2]
+ordered = xy_cut(boxes)
+print([box.text for box in ordered])  # ['left top', 'left bottom', 'right']
 ```
 
 ## Development

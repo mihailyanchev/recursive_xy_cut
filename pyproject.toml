@@ -17,10 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
-dependencies = [
-    "numpy>=2.5.4",
-    "pydantic>=2.14.1",
-]
+dependencies = []
 
 [project.urls]
 Repository = "https://github.com/mihailyanchev/recursive_xy_cut"
@@ -69,7 +66,6 @@ convention = "numpy"
 python_version = "3.12"
 strict = true
 warn_unreachable = true
-plugins = ["pydantic.mypy"]
 files = ["src", "tests"]
 
 # ---------------------------------------------------------------------------
