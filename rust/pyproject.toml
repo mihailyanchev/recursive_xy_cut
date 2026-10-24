@@ -1,0 +1,68 @@
+[project]
+name = "recursive-xy-cut-rs"
+version = "0.1.0"
+description = "Rust implementation of the recursive XY cut algorithm for reading-order detection, as a Python extension."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "Mihail Yanchev", email = "yanchev.mihail@gmail.com" }
+]
+requires-python = ">=3.12"
+keywords = ["document-layout", "reading-order", "xy-cut", "document-analysis"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/mihailyanchev/recursive_xy_cut"
+
+[build-system]
+requires = ["maturin>=1.15.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = "recursive_xy_cut_rs"
+
+# ---------------------------------------------------------------------------
+# uv: rebuild the extension whenever the Rust sources change
+# ---------------------------------------------------------------------------
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "Cargo.toml" }, { file = "src/**/*.rs" }]
+default-groups = ["dev", "bench"]
+
+[tool.uv.sources]
+recursive-xy-cut = { path = "..", editable = true }
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "recursive-xy-cut",
+]
+# The original numpy/pydantic implementation, for benchmarks/bench.py.
+bench = [
+    "numpy>=2.5.4",
+    "pydantic>=2.14.1",
+]
+
+# ---------------------------------------------------------------------------
+# Mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["recursive_xy_cut_rs.pyi", "tests", "benchmarks"]
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]

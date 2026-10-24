@@ -36,6 +36,12 @@ ordered = xy_cut(boxes)
 print([box.text for box in ordered])  # ['left top', 'left bottom', 'right']
 ```
 
+## Rust implementation
+
+[`rust/`](rust/) contains `recursive_xy_cut_rs`, a Rust implementation with the same API, packaged
+as a Python extension. It gives the same reading order and is about 10x faster than this package.
+See [its README](rust/README.md) for usage and benchmarks.
+
 ## Development
 
 | Tool | Purpose | Command |
@@ -65,6 +71,7 @@ uv run pre-commit run --all-files  # optional: run against the whole repo
 │   ├── py.typed            # marks the package as typed (PEP 561)
 │   └── xy_cut.py           # algorithm implementation
 ├── tests/                  # pytest test suite
+├── rust/                   # Rust implementation (recursive_xy_cut_rs)
 ├── pyproject.toml          # project metadata and tool configuration
 └── uv.lock                 # locked dependency versions
 ```
