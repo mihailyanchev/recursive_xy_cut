@@ -6,8 +6,6 @@ Run from the ``rust`` directory with::
     uv run python benchmarks/bench.py
 """
 
-from __future__ import annotations
-
 import random
 import timeit
 from collections.abc import Callable, Sequence

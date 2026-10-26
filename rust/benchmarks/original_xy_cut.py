@@ -5,7 +5,7 @@ Copied verbatim (apart from this docstring) from commit 9a6c71d, before the pure
 rewrite. Its dependencies are in the `bench` dependency group, installed by default.
 """
 
-from __future__ import annotations
+from typing import Self
 
 import numpy as np
 from pydantic import BaseModel
@@ -42,7 +42,7 @@ class Rectangle:
             f"index={self.index})"
         )
 
-    def intersects(self, other: Rectangle) -> bool:
+    def intersects(self, other: Self) -> bool:
         """Check if a Rectangle intersects another one."""
         return not (
             self.top_left.x > other.bottom_right.x

@@ -1,10 +1,9 @@
 """Recursive xy cut method for ordering bounding boxes in a document layout."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 from dataclasses import dataclass
 from operator import itemgetter
+from typing import Self
 
 # A box's corner coordinates (x1, y1, x2, y2), read once up front, followed by
 # the box's position in the input list.
@@ -41,7 +40,7 @@ class Rectangle:
             f"bottom_right=({self.bottom_right.x}, {self.bottom_right.y}))"
         )
 
-    def intersects(self, other: Rectangle) -> bool:
+    def intersects(self, other: Self) -> bool:
         """Check if a Rectangle intersects another one."""
         return not (
             self.top_left.x > other.bottom_right.x
