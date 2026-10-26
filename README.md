@@ -42,6 +42,47 @@ print([box.text for box in ordered])  # ['left top', 'left bottom', 'right']
 as a Python extension. It gives the same reading order and is about 10x faster than this package.
 See [its README](rust/README.md) for usage and benchmarks.
 
+## Evaluation
+
+[`evaluation/chunkr.py`](evaluation/chunkr.py) scores the reading order on the
+[Chunkr reading order benchmark](https://huggingface.co/datasets/ChunkrAI/chunkr-reading-order-bench-oss):
+733 annotated pages from financial, legal, government, research and other documents, with 9,267
+boxes. It downloads only the annotation file, at a pinned revision, and caches it in `data/`:
+
+```bash
+uv run python -m evaluation.chunkr
+```
+
+It compares `xy_cut`, starting with each cut direction, against TBLR: sorting the boxes top to
+bottom, then left to right. Each metric is computed per page and averaged over the pages:
+
+- **Exact match**: the whole page is in the correct order.
+- **Kendall's τ**: pairs of boxes in the correct relative order, minus pairs in the wrong order, as a
+  fraction of all pairs.
+- **Spearman's ρ**: based on how far each box is from its correct position.
+- **Position accuracy**: the fraction of boxes at exactly their correct position.
+
+**All pages (733)**
+
+| Method | Exact match | Kendall's τ | Spearman's ρ | Position accuracy |
+| --- | --- | --- | --- | --- |
+| TBLR | 58.5% | 89.9% | 92.2% | 78.9% |
+| `xy_cut` | 69.8% | 93.6% | 94.5% | 84.9% |
+| `xy_cut(horizontal=False)` | **72.9%** | **94.8%** | **95.9%** | **87.6%** |
+
+**Without headers, footers and page numbers**
+
+| Method | Exact match | Kendall's τ | Spearman's ρ | Position accuracy |
+| --- | --- | --- | --- | --- |
+| TBLR | 72.7% | 89.8% | 91.0% | 82.4% |
+| `xy_cut` | 80.9% | 95.7% | 96.4% | 90.5% |
+| `xy_cut(horizontal=False)` | **81.0%** | **96.1%** | **97.0%** | **90.5%** |
+
+Starting with a horizontal cut, which splits the page into horizontal bands before columns, does
+better overall. Most of that advantage comes from where headers, footers and page numbers end up:
+without them, the two directions score almost the same. The script also prints results per document
+category.
+
 ## Development
 
 | Tool | Purpose | Command |
@@ -72,14 +113,10 @@ uv run pre-commit run --all-files  # optional: run against the whole repo
 │   └── xy_cut.py           # algorithm implementation
 ├── tests/                  # pytest test suite
 ├── rust/                   # Rust implementation (recursive_xy_cut_rs)
+├── evaluation/             # reading-order evaluation on benchmark datasets
 ├── pyproject.toml          # project metadata and tool configuration
 └── uv.lock                 # locked dependency versions
 ```
-
-## Roadmap
-
-- [ ] Evaluation of reading-order accuracy against a benchmark dataset
-- [ ] Cut at all gaps in the same direction per iteration (rather than only the widest one)
 
 ## License
 
